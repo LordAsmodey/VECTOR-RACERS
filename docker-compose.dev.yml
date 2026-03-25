@@ -1,20 +1,28 @@
 # Local development only: PostgreSQL + Redis.
 # Next.js and NestJS run on the host via `pnpm dev` (see README).
+#
+# Postgres credentials are not hardcoded here — set POSTGRES_USER, POSTGRES_PASSWORD,
+# POSTGRES_DB in a project-root `.env` (copy from `.env.example`). Docker Compose
+# substitutes variables from that file.
 
 services:
   postgres:
     image: postgres:16-alpine
     container_name: vector-racers-postgres-dev
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: vector_racers
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - vector_racers_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d vector_racers"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U \"${POSTGRES_USER}\" -d \"${POSTGRES_DB}\"",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5

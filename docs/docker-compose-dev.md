@@ -11,16 +11,16 @@
 | postgres | `postgres:16-alpine` | 5432        | БД Prisma         |
 | redis    | `redis:7-alpine`     | 6379        | кэш / сессии (по задачам) |
 
-Учётные данные Postgres в compose: пользователь `postgres`, пароль `postgres`, база `vector_racers`. Redis без пароля (порт по умолчанию).
+Пароль и имя БД **не зашиты в `docker-compose.dev.yml`**: сервис `postgres` получает `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` через подстановку из корневого **`.env`** (создай из [`.env.example`](../.env.example)). Redis без пароля (порт по умолчанию).
 
 ## Согласование с `.env`
 
-После `cp .env.example .env` значения по умолчанию совместимы с compose:
+1. Выполни `cp .env.example .env`.
+2. В `.env` должны быть заданы `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` — они использует Compose.
+3. **`DATABASE_URL`** для Prisma должен совпадать с этими тремя значениями (тот же пользователь, пароль и имя БД на `localhost:5432`).
+4. **`REDIS_URL`** для локального Redis из compose: `redis://localhost:6379`.
 
-- `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/vector_racers?schema=public`
-- `REDIS_URL=redis://localhost:6379`
-
-Если меняете порты или креды в `docker-compose.dev.yml`, обновите те же переменные в `.env`.
+Если меняете креды или порты, обновите и `POSTGRES_*`, и `DATABASE_URL` (и при смене порта Postgres — проброс в `docker-compose.dev.yml`).
 
 ## Зависимости между сервисами
 
@@ -57,6 +57,9 @@ docker compose -f docker-compose.dev.yml down -v
 ```bash
 docker compose -f docker-compose.dev.yml config
 ```
+
+Если корневого `.env` ещё нет, подставь переменные из примера:  
+`docker compose --env-file .env.example -f docker-compose.dev.yml config`
 
 ## Тома
 

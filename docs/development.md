@@ -18,7 +18,7 @@ pnpm install
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-Файл `docker-compose.dev.yml`: PostgreSQL 16 (`postgres` / `postgres`, БД `vector_racers`). Redis 7 (`redis://localhost:6379`). Это соответствует `DATABASE_URL` и `REDIS_URL` в `.env.example` после копирования в `.env` (`cp .env.example .env`).
+Файл `docker-compose.dev.yml`: PostgreSQL 16 и Redis 7; креды Postgres берутся из `.env` (`POSTGRES_*`), не из литералов в YAML. После `cp .env.example .env` примеры в файле согласованы с `DATABASE_URL` и `REDIS_URL`.
 
 Подробная справка: [docker-compose-dev.md](./docker-compose-dev.md).
 
