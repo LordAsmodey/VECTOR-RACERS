@@ -20,6 +20,8 @@ docker compose -f docker-compose.dev.yml up -d
 
 Файл `docker-compose.dev.yml`: PostgreSQL 16 (`postgres` / `postgres`, БД `vector_racers`). Redis 7 (`redis://localhost:6379`). Это соответствует `DATABASE_URL` и `REDIS_URL` в `.env.example` после копирования в `.env` (`cp .env.example .env`).
 
+Подробная справка: [docker-compose-dev.md](./docker-compose-dev.md).
+
 ## Команды из корня
 
 | Команда | Назначение |

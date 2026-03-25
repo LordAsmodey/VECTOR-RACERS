@@ -31,6 +31,8 @@ docker compose -f docker-compose.dev.yml up -d
 
 Остановка: `docker compose -f docker-compose.dev.yml down` (данные в томах сохраняются; для полного сброса добавьте `-v`).
 
+Полная документация: [docs/docker-compose-dev.md](./docs/docker-compose-dev.md).
+
 ## Scripts (root)
 
 | Script        | Description                    |
