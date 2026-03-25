@@ -65,6 +65,7 @@ Job `prisma-pr-checks` выполняется только при `github.event_
 
 Команды внутри job’а:
 - `prisma validate` по схеме `./prisma/schema.prisma`
+- если в репозитории нет `prisma/migrations/migration_lock.toml`, workflow в CI сгенерирует миграции через `prisma migrate dev --create-only` (на shadow DB), чтобы затем drift-check смог сравнить миграции и схему
 - проверка дрейфа миграций:
   - `prisma migrate diff --exit-code`
   - `--shadow-database-url "${DATABASE_URL}"`

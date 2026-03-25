@@ -86,6 +86,19 @@ jobs:
       - name: Validate Prisma schema
         run: pnpm --filter @vector-racers/db exec prisma validate --schema ./prisma/schema.prisma
 
+      - name: Check Prisma migration lock
+        id: prisma_migrations_lock
+        run: |
+          if [ -f "packages/db/prisma/migrations/migration_lock.toml" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate missing Prisma migrations (CI only)
+        if: steps.prisma_migrations_lock.outputs.present != 'true'
+        run: pnpm --filter @vector-racers/db exec prisma migrate dev --name ci_init --create-only --skip-generate --skip-seed --schema ./prisma/schema.prisma
+
       - name: Check Prisma migrations drift
         run: pnpm --filter @vector-racers/db exec prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma --shadow-database-url "${DATABASE_URL}" --exit-code
 
