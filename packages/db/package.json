@@ -15,7 +15,7 @@
     "dev": "prisma generate --schema=./prisma/schema.prisma",
     "postinstall": "prisma generate --schema=./prisma/schema.prisma",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:5432/vector_racers?schema=public} prisma validate --schema=./prisma/schema.prisma"
+    "lint": "DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:5433/vector_racers?schema=public} prisma validate --schema=./prisma/schema.prisma"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

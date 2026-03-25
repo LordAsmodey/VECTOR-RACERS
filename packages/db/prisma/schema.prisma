@@ -8,3 +8,156 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum UserRole {
+  PLAYER
+  ADMIN
+}
+
+enum RoomStatus {
+  WAITING
+  RACING
+  FINISHED
+}
+
+enum ChampionshipStatus {
+  DRAFT
+  ACTIVE
+  FINISHED
+}
+
+// Maps to UI schedule states (upcoming/live/done) in TASK-016.
+enum ChampEventStatus {
+  DRAFT
+  ACTIVE
+  FINISHED
+}
+
+enum TrackDifficulty {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  role         UserRole @default(PLAYER)
+
+  roomPlayers  RoomPlayer[]
+  champResults ChampResult[]
+}
+
+model Car {
+  id                 String @id @default(cuid())
+  slug               String @unique
+  name               String
+  stats              String @db.Text // Serialized JSON: { speed, acceleration, grip, mass }.
+  imageUrl           String
+  unlockedByDefault Boolean @default(false)
+
+  roomPlayers RoomPlayer[]
+}
+
+model Track {
+  id            String @id @default(cuid())
+  slug          String @unique
+  name          String
+  waypointsJson String @db.Text
+  previewUrl    String
+  lapCount      Int
+  difficulty    TrackDifficulty
+
+  champEvents ChampEvent[]
+}
+
+model Room {
+  id         String    @id @default(cuid())
+  code       String    @unique @db.VarChar(6)
+  status     RoomStatus @default(WAITING)
+  maxPlayers Int
+  createdAt  DateTime  @default(now())
+
+  roomPlayers RoomPlayer[]
+  replays      Replay[]
+}
+
+model RoomPlayer {
+  roomId   String
+  userId   String
+  carId    String
+  position Int     @default(0)
+  laps     Int     @default(0)
+  isReady  Boolean @default(false)
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  car  Car  @relation(fields: [carId], references: [id], onDelete: Cascade)
+
+  // Composite PK keeps `(roomId, userId)` unique without a surrogate id.
+  @@id([roomId, userId])
+
+  // Explicit indexes for fast lookups via foreign keys in queries.
+  @@index([roomId])
+  @@index([userId])
+  @@index([carId])
+}
+
+model Championship {
+  id        String              @id @default(cuid())
+  name      String
+  status    ChampionshipStatus @default(DRAFT)
+  startAt   DateTime
+  endAt     DateTime
+
+  champEvents ChampEvent[]
+}
+
+model ChampEvent {
+  id              String          @id @default(cuid())
+  championshipId String
+  trackId         String
+  orderIndex      Int
+  status          ChampEventStatus @default(DRAFT)
+
+  championship Championship @relation(fields: [championshipId], references: [id], onDelete: Cascade)
+  track        Track        @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  results      ChampResult[]
+
+  @@index([championshipId])
+  @@index([trackId])
+  @@unique([championshipId, orderIndex])
+}
+
+model ChampResult {
+  id             String @id @default(cuid())
+  champEventId  String
+  userId         String
+  points         Int
+  finishPosition Int
+  fastestLapMs  Int
+
+  champEvent ChampEvent @relation(fields: [champEventId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([champEventId])
+  @@index([userId])
+  @@unique([champEventId, userId])
+}
+
+model Replay {
+  id         String   @id @default(cuid())
+  roomId     String
+  // JSON array stored as text: [{ moveSeq, userId, input: { inputX, inputY }, resultingStateHash? }, ...]
+  movesJson  String   @db.Text
+  createdAt  DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+}
