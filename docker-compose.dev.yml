@@ -1,0 +1,45 @@
+# Local development only: PostgreSQL + Redis.
+# Next.js and NestJS run on the host via `pnpm dev` (see README).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vector-racers-postgres-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: vector_racers
+    ports:
+      - "5432:5432"
+    volumes:
+      - vector_racers_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vector_racers"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: vector-racers-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - vector_racers_redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  vector_racers_postgres_data:
+  vector_racers_redis_data:

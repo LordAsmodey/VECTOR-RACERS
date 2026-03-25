@@ -12,7 +12,13 @@ cp .env.example .env
 pnpm install
 ```
 
-Переменные описаны в [Переменные окружения](#переменные-окружения). Для БД и Redis нужен запущенный Docker Compose (см. TASK-002 в `vector-racers-tasks.md`) или локальные сервисы.
+Переменные описаны в [Переменные окружения](#переменные-окружения). Для БД и Redis подними **Docker Compose** из корня репозитория или используй локальные сервисы.
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+Файл `docker-compose.dev.yml`: PostgreSQL 16 (`postgres` / `postgres`, БД `vector_racers`). Redis 7 (`redis://localhost:6379`). Это соответствует `DATABASE_URL` и `REDIS_URL` в `.env.example` после копирования в `.env` (`cp .env.example .env`).
 
 ## Команды из корня
 
