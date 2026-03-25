@@ -48,6 +48,22 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     needs: resolve-node
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vector_racers
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vector_racers?schema=public
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,7 +87,7 @@ jobs:
         run: pnpm --filter @vector-racers/db exec prisma validate --schema ./prisma/schema.prisma
 
       - name: Check Prisma migrations drift
-        run: pnpm --filter @vector-racers/db exec prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma --shadow-database-url "file:./prisma/.prisma-shadow.db" --exit-code
+        run: pnpm --filter @vector-racers/db exec prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma --shadow-database-url "${DATABASE_URL}" --exit-code
 
   lint:
     name: Lint
@@ -174,6 +190,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build shared package (types)
+        run: pnpm --filter @vector-racers/shared build
 
       - name: Run tests
         run: pnpm test

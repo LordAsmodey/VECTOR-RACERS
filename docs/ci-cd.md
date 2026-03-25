@@ -51,7 +51,7 @@ Job `resolve-node` запускает скрипт `.github/scripts/resolve-node
 
 ### `test`
 
-Запускает `pnpm test` (unit-тесты).
+Сначала собирает `@vector-racers/shared` (чтобы были сгенерированы `dist`/типизации), затем запускает `pnpm test` (unit-тесты).
 
 ### `build`
 
@@ -61,11 +61,13 @@ Job `resolve-node` запускает скрипт `.github/scripts/resolve-node
 
 Job `prisma-pr-checks` выполняется только при `github.event_name == 'pull_request'`.
 
+В job’е поднимается временный `postgres:16` сервис и выставляется `DATABASE_URL`, чтобы команды Prisma могли валидировать схему и сравнивать миграции без зависимости от внешних env.
+
 Команды внутри job’а:
 - `prisma validate` по схеме `./prisma/schema.prisma`
 - проверка дрейфа миграций:
   - `prisma migrate diff --exit-code`
-  - `--shadow-database-url "file:./prisma/.prisma-shadow.db"`
+  - `--shadow-database-url "${DATABASE_URL}"`
   - сравнение `./prisma/migrations` и `./prisma/schema.prisma`
 
 Что это дает:
