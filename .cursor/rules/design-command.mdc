@@ -1,0 +1,22 @@
+---
+description: Run full design workflow when user says "design" or "design: <feature>"; output is a folder with HTML+CSS ready for implement.
+alwaysApply: true
+---
+
+# Design Command
+
+When the user says **design** or **design: &lt;feature description&gt;** (or an equivalent request to create a UI/UX design for a feature):
+
+1. **Apply** the skill **design-feature** from `.cursor/skills/design-feature/SKILL.md`. Implementation target is **Next.js (`apps/web`)**; see **`.cursor/agents/vector-racers-context.md`** and **`vector-racers-tasks.md`** for UI scope and racing-game tone.
+2. **Execute** the full workflow as **Design Orchestrator** (management only — you do not create HTML/CSS yourself):
+   - Parse input: feature name, description, optional reference URL / competitor site / style notes.
+   - Define output folder: `designs/<feature-slug>/`.
+   - Call **designer** (mcp_task, subagent_type: designer) to create HTML+CSS in that folder.
+   - Call **viewport-runner** (mcp_task, subagent_type: viewport-runner) to capture screenshots at several viewports (script: `node scripts/viewport-screenshots.js <design-folder>`); if skipped, reviewer does code-only.
+   - Call **design-reviewer** (mcp_task, subagent_type: design-reviewer): first code review, then screenshot review (if screenshots present).
+   - On FAILED review: pass issues back to designer and repeat (max 3 rework cycles); then circuit breaker if still FAILED.
+   - Report to the user: path to the folder and how to use it with implement ("implement: <feature> — design is ready in `designs/<feature-slug>/`").
+
+Input can be a text description, reference URL, competitor site, or similar — **Figma or ready mockups are not required**.
+
+Do not skip the design-reviewer step or the rework/circuit breaker rules.
