@@ -8,7 +8,7 @@
 
 | Сервис   | Образ              | Порт (хост) | Назначение        |
 |----------|--------------------|-------------|-------------------|
-| postgres | `postgres:16-alpine` | 5432        | БД Prisma         |
+| postgres | `postgres:16-alpine` | 5433        | БД Prisma (в контейнере 5432) |
 | redis    | `redis:7-alpine`     | 6379        | кэш / сессии (по задачам) |
 
 Пароль и имя БД **не зашиты в `docker-compose.dev.yml`**: сервис `postgres` получает `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` через подстановку из корневого **`.env`** (создай из [`.env.example`](../.env.example)). Redis без пароля (порт по умолчанию).
@@ -17,7 +17,7 @@
 
 1. Выполни `cp .env.example .env`.
 2. В `.env` должны быть заданы `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` — они использует Compose.
-3. **`DATABASE_URL`** для Prisma должен совпадать с этими тремя значениями (тот же пользователь, пароль и имя БД на `localhost:5432`).
+3. **`DATABASE_URL`** для Prisma должен совпадать с этими тремя значениями (тот же пользователь, пароль и имя БД). По умолчанию Postgres проброшен на **хост `localhost:5433`** (внутри контейнера порт 5432), чтобы не пересекаться с другим Postgres на 5432.
 4. **`REDIS_URL`** для локального Redis из compose: `redis://localhost:6379`.
 
 Если меняете креды или порты, обновите и `POSTGRES_*`, и `DATABASE_URL` (и при смене порта Postgres — проброс в `docker-compose.dev.yml`).

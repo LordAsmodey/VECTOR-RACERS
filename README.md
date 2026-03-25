@@ -28,6 +28,7 @@ docker compose -f docker-compose.dev.yml up -d
 
 - **PostgreSQL 16** и **Redis 7** с именованными томами и `healthcheck`; Redis стартует после готовности Postgres (`depends_on` + `service_healthy`).
 - Учётные данные Postgres для контейнера задаются в **`.env`** переменными `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` (см. [`.env.example`](./.env.example)); в `docker-compose.dev.yml` литералов пароля нет — только подстановка из `.env`. После `cp .env.example .env` значения по умолчанию согласованы с `DATABASE_URL`.
+- Postgres на хосте слушает **порт 5433** (внутри контейнера — 5432), чтобы не пересекаться с другим PostgreSQL на 5432.
 
 Остановка: `docker compose -f docker-compose.dev.yml down` (данные в томах сохраняются; для полного сброса добавьте `-v`).
 
