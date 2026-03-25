@@ -1,0 +1,14 @@
+{
+  "extends": "@vector-racers/config/typescript/base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@vector-racers/db": ["./src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "prisma/**/*.ts"]
+}
