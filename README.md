@@ -18,6 +18,21 @@ pnpm install
 
 Подробнее: [docs/development.md](./docs/development.md).
 
+### Docker Compose (PostgreSQL и Redis)
+
+Приложения (**не** в контейнерах) запускаются локально через `pnpm dev`. База и Redis через Compose:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+- **PostgreSQL 16** и **Redis 7** с именованными томами и `healthcheck`; Redis стартует после готовности Postgres (`depends_on` + `service_healthy`).
+- Учётные данные Postgres для контейнера задаются в **`.env`** переменными `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` (см. [`.env.example`](./.env.example)); в `docker-compose.dev.yml` литералов пароля нет — только подстановка из `.env`. После `cp .env.example .env` значения по умолчанию согласованы с `DATABASE_URL`.
+
+Остановка: `docker compose -f docker-compose.dev.yml down` (данные в томах сохраняются; для полного сброса добавьте `-v`).
+
+Полная документация: [docs/docker-compose-dev.md](./docs/docker-compose-dev.md).
+
 ## Scripts (root)
 
 | Script        | Description                    |
