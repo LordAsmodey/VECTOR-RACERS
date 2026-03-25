@@ -24,8 +24,10 @@
     "@prisma/client": "^6.1.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/node": "^22.10.2",
     "@vector-racers/config": "workspace:*",
+    "bcrypt": "^6.0.0",
     "prisma": "^6.1.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
