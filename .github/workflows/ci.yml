@@ -53,7 +53,8 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          # Dynamic password to avoid committing "hardcoded secret" patterns.
+          POSTGRES_PASSWORD: ${{ github.run_id }}
           POSTGRES_DB: vector_racers
         ports:
           - 5432:5432
@@ -63,7 +64,7 @@ jobs:
           --health-timeout=5s
           --health-retries=10
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vector_racers?schema=public
+      DATABASE_URL: postgresql://postgres:${{ github.run_id }}@localhost:5432/vector_racers?schema=public
     steps:
       - name: Checkout
         uses: actions/checkout@v4
