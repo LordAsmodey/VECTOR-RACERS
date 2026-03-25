@@ -40,6 +40,7 @@ test-results/
 # Prisma
 packages/db/prisma/*.db
 packages/db/prisma/*.db-journal
+packages/db/src/generated/
 
 # Misc
 *.pem

@@ -1,0 +1,17 @@
+{
+  "name": "@vector-racers/config",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "eslint",
+    "typescript",
+    "prettier.config.cjs"
+  ],
+  "exports": {
+    "./eslint/base": "./eslint/base.cjs",
+    "./typescript/base.json": "./typescript/base.json",
+    "./typescript/nest.json": "./typescript/nest.json",
+    "./typescript/nextjs.json": "./typescript/nextjs.json",
+    "./prettier": "./prettier.config.cjs"
+  }
+}

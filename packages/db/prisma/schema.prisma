@@ -1,0 +1,10 @@
+// TASK-004 adds domain models. Schema kept minimal so `prisma generate` works in TASK-001.
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
