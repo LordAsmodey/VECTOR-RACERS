@@ -46,6 +46,11 @@ docker compose -f docker-compose.dev.yml up -d
 | `pnpm db:migrate` | Prisma migrate dev (`packages/db`) |
 | `pnpm db:seed` | Prisma db seed (`packages/db`) |
 
+## CI/CD (GitHub Actions)
+
+- Workflow: `.github/workflows/ci.yml`.
+- Подробности (триггеры, jobs, кэширование, Prisma PR checks и gating публикации Docker до TASK-020): [docs/ci-cd.md](./docs/ci-cd.md).
+
 ## Environment variables
 
 Корневой [`.env.example`](./.env.example) — единый ориентир для локальной разработки и CI. Кратко:
