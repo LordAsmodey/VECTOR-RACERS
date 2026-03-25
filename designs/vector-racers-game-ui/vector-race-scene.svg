@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" width="400" height="260">
+  <defs>
+    <filter id="vr-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.4" result="b" />
+      <feMerge>
+        <feMergeNode in="b" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <filter id="vr-glow-soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="0.8" result="b" />
+      <feMerge>
+        <feMergeNode in="b" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <linearGradient id="vr-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a1020" />
+      <stop offset="55%" stop-color="#04060c" />
+      <stop offset="100%" stop-color="#000000" />
+    </linearGradient>
+    <marker id="vr-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 Z" fill="#ff2ea6" />
+    </marker>
+  </defs>
+
+  <rect width="400" height="260" fill="url(#vr-sky)" />
+
+  <g opacity="0.35" stroke="#008844" fill="none" stroke-width="0.5">
+    <line x1="0" y1="210" x2="400" y2="210" />
+    <line x1="0" y1="180" x2="400" y2="180" />
+    <line x1="0" y1="150" x2="400" y2="150" />
+    <line x1="40" y1="260" x2="200" y2="32" />
+    <line x1="120" y1="260" x2="200" y2="32" />
+    <line x1="200" y1="260" x2="200" y2="32" />
+    <line x1="280" y1="260" x2="200" y2="32" />
+    <line x1="360" y1="260" x2="200" y2="32" />
+  </g>
+
+  <path
+    d="M 18 258 Q 125 95 194 36"
+    fill="none"
+    stroke="#00ff88"
+    stroke-width="3.5"
+    stroke-linecap="round"
+    filter="url(#vr-glow)"
+  />
+  <path
+    d="M 382 258 Q 275 95 206 36"
+    fill="none"
+    stroke="#00ff88"
+    stroke-width="3.5"
+    stroke-linecap="round"
+    filter="url(#vr-glow)"
+  />
+  <path
+    d="M 62 252 Q 155 115 196 54"
+    fill="none"
+    stroke="#00cc6a"
+    stroke-width="1.8"
+    opacity="0.95"
+  />
+  <path
+    d="M 338 252 Q 245 115 204 54"
+    fill="none"
+    stroke="#00cc6a"
+    stroke-width="1.8"
+    opacity="0.95"
+  />
+  <path
+    d="M 112 250 Q 200 105 200 45"
+    fill="none"
+    stroke="#00ff88"
+    stroke-width="1.2"
+    stroke-dasharray="5 7"
+    opacity="0.55"
+  />
+
+  <g transform="translate(0, 248)" aria-hidden="true">
+    <rect x="168" y="0" width="8" height="10" fill="#ffffff" />
+    <rect x="176" y="0" width="8" height="10" fill="#111111" />
+    <rect x="184" y="0" width="8" height="10" fill="#ffffff" />
+    <rect x="192" y="0" width="8" height="10" fill="#111111" />
+    <rect x="200" y="0" width="8" height="10" fill="#ffffff" />
+    <rect x="208" y="0" width="8" height="10" fill="#111111" />
+    <rect x="216" y="0" width="8" height="10" fill="#ffffff" />
+    <rect x="224" y="0" width="8" height="10" fill="#111111" />
+  </g>
+
+  <g opacity="0.45" filter="url(#vr-glow-soft)">
+    <polygon points="168,198 182,198 175,186" fill="none" stroke="#00f5ff" stroke-width="1.5" />
+    <text x="175" y="208" text-anchor="middle" fill="#00f5ff" font-size="7" font-family="Orbitron, sans-serif">ghost</text>
+  </g>
+
+  <g transform="translate(218, 118) rotate(-8)" filter="url(#vr-glow-soft)">
+    <polygon points="0,14 12,0 24,14" fill="#7fff5a" opacity="0.9" />
+    <polygon points="0,14 12,0 24,14" fill="none" stroke="#ccff99" stroke-width="0.8" />
+  </g>
+
+  <g transform="translate(188, 198)" filter="url(#vr-glow)">
+    <polygon points="0,18 24,18 12,0" fill="#ff2ea6" opacity="0.95" />
+    <polygon points="0,18 24,18 12,0" fill="none" stroke="#ffb8e8" stroke-width="1" />
+    <circle cx="8" cy="16" r="1.5" fill="#ffffff" opacity="0.9" />
+    <circle cx="16" cy="16" r="1.5" fill="#ffffff" opacity="0.9" />
+  </g>
+
+  <line
+    x1="200"
+    y1="207"
+    x2="248"
+    y2="118"
+    stroke="#ff2ea6"
+    stroke-width="2.2"
+    marker-end="url(#vr-arrow)"
+    opacity="0.95"
+  />
+  <circle cx="248" cy="118" r="6" fill="none" stroke="#00f5ff" stroke-width="2" />
+  <circle cx="248" cy="118" r="2.5" fill="#00f5ff" opacity="0.85" />
+</svg>

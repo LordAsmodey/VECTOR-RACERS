@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Race — Vector Racers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600&family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="components.css">
+  <style>
+    /* ── Race-specific inline (keeps prototype self-contained) ── */
+
+    .race-canvas-wrap {
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+      background: #020308;
+      cursor: crosshair;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Grid dots background */
+    .race-canvas-wrap::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(0,245,255,0.08) 1px, transparent 1px);
+      background-size: 24px 24px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Scanline overlay */
+    .race-canvas-wrap::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0.06;
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.4) 0px, rgba(0,0,0,0.4) 1px, transparent 1px, transparent 3px);
+      mix-blend-mode: multiply;
+    }
+
+    .race-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Car sprite on track */
+    .race-car {
+      position: absolute;
+      z-index: 10;
+      width: 48px;
+      height: 48px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      filter: drop-shadow(0 0 8px var(--car-glow, rgba(255,46,166,0.6)));
+      transition: transform 0.05s;
+    }
+    .race-car img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .race-car--you { --car-glow: rgba(255,46,166,0.7); }
+    .race-car--opp { --car-glow: rgba(127,255,90,0.6); width: 40px; height: 40px; }
+
+    .race-car__label {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-display);
+      font-size: 0.55rem;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+      text-transform: uppercase;
+      padding: 1px 5px;
+      border-radius: 2px;
+    }
+    .race-car--you .race-car__label {
+      color: #020308;
+      background: var(--color-neon-magenta);
+    }
+    .race-car--opp .race-car__label {
+      color: #020308;
+      background: var(--color-neon-lime);
+    }
+
+    /* Trail dots */
+    .trail-dot {
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 5;
+    }
+    .trail-dot--you { background: var(--color-neon-magenta); }
+    .trail-dot--opp { background: var(--color-neon-lime); }
+
+    /* Ghost (inertia prediction) */
+    .ghost {
+      position: absolute;
+      z-index: 8;
+      width: 40px;
+      height: 40px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      opacity: 0.35;
+      filter: blur(1px) drop-shadow(0 0 6px rgba(0,245,255,0.5));
+    }
+    .ghost img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: hue-rotate(160deg) saturate(0.5) brightness(1.4);
+    }
+    .ghost__label {
+      position: absolute;
+      bottom: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-display);
+      font-size: 0.5rem;
+      color: var(--color-neon-cyan);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* Thrust vector line + landing dot (SVG overlay) */
+    .vector-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 15;
+      pointer-events: none;
+    }
+
+    /* Landing dot pulse */
+    .landing-dot {
+      position: absolute;
+      z-index: 16;
+      width: 16px;
+      height: 16px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .landing-dot__ring {
+      position: absolute;
+      inset: 0;
+      border: 2px solid var(--color-neon-cyan);
+      border-radius: 50%;
+      animation: pulse-ring 1.2s ease-out infinite;
+    }
+    .landing-dot__core {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 6px; height: 6px;
+      transform: translate(-50%, -50%);
+      background: var(--color-neon-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--color-neon-cyan);
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+
+    /* Drag active state */
+    .race-canvas-wrap--dragging .race-car--you {
+      filter: drop-shadow(0 0 16px rgba(255,46,166,0.9));
+    }
+
+    /* Stars */
+    .star {
+      position: absolute;
+      border-radius: 50%;
+      background: #fff;
+      pointer-events: none;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell shell--immersive">
+
+    <div class="banner banner--hidden" id="disconnect-banner" role="status" aria-live="polite">
+      Player <strong>GridGhost</strong> disconnected — waiting for reconnect…
+    </div>
+
+    <main class="race-screen" id="main">
+
+      <!-- ── HUD ── -->
+      <header class="race-hud" role="region" aria-label="Race HUD">
+        <a class="race-hud__brand" href="index.html">VR</a>
+        <div class="race-hud__group">
+          <div class="race-hud__cell">
+            <span class="race-hud__label">Lap</span>
+            <span class="race-hud__val race-hud__val--accent" id="hud-lap">2 <small>/ 5</small></span>
+          </div>
+          <div class="race-hud__cell">
+            <span class="race-hud__label">Speed</span>
+            <span class="race-hud__val" id="hud-speed">142 <small>u/s</small></span>
+          </div>
+          <div class="race-hud__cell">
+            <span class="race-hud__label">Turn</span>
+            <span class="race-hud__val race-hud__val--magenta" id="hud-turn">7</span>
+          </div>
+          <div class="race-hud__cell">
+            <span class="race-hud__label">Inertia</span>
+            <span class="race-hud__val" id="hud-inertia">68%</span>
+          </div>
+        </div>
+        <div class="race-hud__positions">
+          <span class="race-hud__pos race-hud__pos--you" title="You">P1</span>
+          <span class="race-hud__pos" title="GridGhost">P2</span>
+        </div>
+      </header>
+
+      <!-- ── Track area ── -->
+      <div class="race-canvas-wrap" id="raceArea">
+
+        <!-- Track SVG (rendered by TrackRenderer in production) -->
+        <svg class="race-svg" id="trackSvg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <filter id="neon-glow">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <filter id="neon-glow-strong">
+              <feGaussianBlur stdDeviation="5" result="blur" />
+              <feColorMatrix in="blur" type="matrix"
+                values="0 0 0 0 0  0 1 0 0 0.5  0 0 0 0 0.3  0 0 0 1.5 0" result="green-blur" />
+              <feMerge>
+                <feMergeNode in="green-blur" />
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <linearGradient id="track-fill" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="rgba(0,255,136,0.03)" />
+              <stop offset="100%" stop-color="rgba(0,245,255,0.02)" />
+            </linearGradient>
+          </defs>
+
+          <!-- Track surface (dark filled area) -->
+          <path id="trackSurface"
+            d="M 140 480 Q 60 380 80 260 Q 100 140 220 100 Q 340 60 500 80
+               Q 660 60 780 100 Q 900 140 920 260 Q 940 380 860 480
+               Q 780 560 500 540 Q 220 560 140 480 Z"
+            fill="url(#track-fill)"
+            stroke="none" />
+
+          <!-- Outer rail -->
+          <path id="outerRail"
+            d="M 140 480 Q 60 380 80 260 Q 100 140 220 100 Q 340 60 500 80
+               Q 660 60 780 100 Q 900 140 920 260 Q 940 380 860 480
+               Q 780 560 500 540 Q 220 560 140 480 Z"
+            fill="none"
+            stroke="#00ff88"
+            stroke-width="4"
+            filter="url(#neon-glow-strong)" />
+
+          <!-- Inner rail -->
+          <path id="innerRail"
+            d="M 240 440 Q 180 370 195 275 Q 210 180 300 155 Q 390 130 500 145
+               Q 610 130 700 155 Q 790 180 805 275 Q 820 370 760 440
+               Q 700 490 500 480 Q 300 490 240 440 Z"
+            fill="none"
+            stroke="#00cc6a"
+            stroke-width="3"
+            filter="url(#neon-glow)" />
+
+          <!-- Center racing line (dashed) -->
+          <path id="centerLine"
+            d="M 190 460 Q 120 375 137 268 Q 155 160 260 128 Q 365 95 500 112
+               Q 635 95 740 128 Q 845 160 863 268 Q 880 375 810 460
+               Q 740 525 500 510 Q 260 525 190 460 Z"
+            fill="none"
+            stroke="#00ff88"
+            stroke-width="1.5"
+            stroke-dasharray="8 12"
+            opacity="0.4" />
+
+          <!-- Chevron markers along outer rail -->
+          <g opacity="0.5" fill="none" stroke="#00ffaa" stroke-width="1.5">
+            <path d="M 100 340 L 110 330 L 120 340" />
+            <path d="M 90 270 L 100 260 L 110 270" />
+            <path d="M 130 190 L 140 180 L 150 190" />
+            <path d="M 260 100 L 270 90 L 280 100" />
+            <path d="M 400 75 L 410 65 L 420 75" />
+            <path d="M 580 75 L 590 65 L 600 75" />
+            <path d="M 730 100 L 740 90 L 750 100" />
+            <path d="M 870 190 L 860 180 L 850 190" />
+            <path d="M 900 270 L 890 260 L 880 270" />
+            <path d="M 900 380 L 890 370 L 880 380" />
+            <path d="M 810 500 L 800 510 L 790 500" />
+            <path d="M 600 545 L 590 555 L 580 545" />
+            <path d="M 400 545 L 390 555 L 380 545" />
+            <path d="M 200 500 L 190 510 L 180 500" />
+          </g>
+
+          <!-- Start/finish checkered line -->
+          <g transform="translate(480, 535)">
+            <rect x="0" y="0" width="8" height="14" fill="#ffffff" opacity="0.9" />
+            <rect x="8" y="0" width="8" height="14" fill="#222" />
+            <rect x="16" y="0" width="8" height="14" fill="#ffffff" opacity="0.9" />
+            <rect x="24" y="0" width="8" height="14" fill="#222" />
+            <rect x="32" y="0" width="8" height="14" fill="#ffffff" opacity="0.9" />
+          </g>
+        </svg>
+
+        <!-- Vector overlay (thrust arrow drawn here) -->
+        <svg class="vector-overlay" id="vectorOverlay" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <marker id="arrow-head" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+              <path d="M0,0 L10,4 L0,8 Z" fill="#ff2ea6" />
+            </marker>
+          </defs>
+          <line id="thrustLine" x1="0" y1="0" x2="0" y2="0"
+            stroke="#ff2ea6" stroke-width="3" stroke-linecap="round"
+            marker-end="url(#arrow-head)" opacity="0" filter="url(#neon-glow)" />
+        </svg>
+
+        <!-- Trail dots container -->
+        <div id="trailContainer" aria-hidden="true"></div>
+
+        <!-- Ghost (inertia prediction) -->
+        <div class="ghost" id="ghost" hidden>
+          <img src="img/car-magenta.png" alt="" />
+          <span class="ghost__label">inertia</span>
+        </div>
+
+        <!-- Landing dot -->
+        <div class="landing-dot" id="landingDot" hidden>
+          <span class="landing-dot__ring"></span>
+          <span class="landing-dot__core"></span>
+        </div>
+
+        <!-- Cars -->
+        <div class="race-car race-car--opp" id="carOpp">
+          <span class="race-car__label">GridGhost</span>
+          <img src="img/car-lime.png" alt="Opponent car" />
+        </div>
+        <div class="race-car race-car--you" id="carYou">
+          <span class="race-car__label">You</span>
+          <img src="img/car-magenta.png" alt="Your car" />
+        </div>
+
+        <!-- Thrust bar (left) -->
+        <div class="race-thrust" role="meter" aria-label="Thrust power" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+          <div class="race-thrust__track">
+            <div class="race-thrust__fill" id="thrustFill"></div>
+          </div>
+          <span class="race-thrust__label">Thrust</span>
+          <span class="race-thrust__pct" id="thrustPct">0%</span>
+        </div>
+
+        <!-- Minimap -->
+        <aside class="race-minimap" aria-label="Minimap">
+          <span class="race-minimap__title">Map</span>
+          <div class="race-minimap__wrap">
+            <svg class="race-minimap__svg" viewBox="0 0 1000 600">
+              <path d="M 140 480 Q 60 380 80 260 Q 100 140 220 100 Q 340 60 500 80
+                       Q 660 60 780 100 Q 900 140 920 260 Q 940 380 860 480
+                       Q 780 560 500 540 Q 220 560 140 480 Z"
+                fill="none" stroke="#00ff88" stroke-width="12" opacity="0.7" />
+              <circle id="mmDotYou" cx="500" cy="510" r="16" fill="#ff2ea6" />
+              <circle id="mmDotOpp" cx="740" cy="128" r="14" fill="#7fff5a" />
+            </svg>
+          </div>
+        </aside>
+
+        <!-- Turn timer -->
+        <div class="race-timer" role="timer" aria-label="45 seconds remaining of 60">
+          <svg class="race-timer__ring" viewBox="0 0 64 64" aria-hidden="true">
+            <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
+            <circle cx="32" cy="32" r="26" fill="none" stroke="var(--color-neon-cyan)" stroke-width="4"
+              stroke-linecap="round" stroke-dasharray="163.36" stroke-dashoffset="41"
+              style="filter:drop-shadow(0 0 6px rgba(0,245,255,0.6));" />
+          </svg>
+          <span class="race-timer__text" id="timerText">45</span>
+        </div>
+
+        <!-- Hint -->
+        <p class="race-viewport__hint" id="hint">Drag from your car to aim — release to submit move</p>
+      </div>
+    </main>
+
+    <footer class="shell__footer shell__footer--dim">
+      <a href="room-post-race.html">Results (proto)</a> · <a href="lobby.html">Lobby</a> · <a href="index.html">Hub</a>
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+      const area = document.getElementById('raceArea');
+      const carYou = document.getElementById('carYou');
+      const carOpp = document.getElementById('carOpp');
+      const ghost = document.getElementById('ghost');
+      const landingDot = document.getElementById('landingDot');
+      const thrustLine = document.getElementById('thrustLine');
+      const thrustFill = document.getElementById('thrustFill');
+      const thrustPct = document.getElementById('thrustPct');
+      const trailContainer = document.getElementById('trailContainer');
+      const hint = document.getElementById('hint');
+      const mmDotYou = document.getElementById('mmDotYou');
+
+      const MAX_THRUST = 180;
+      const TRAIL_COUNT = 18;
+
+      // Track path for placing objects (normalized 0-1 → pixel coords)
+      // Simplified center-line waypoints
+      const waypoints = [
+        [500,510],[350,495],[240,440],[190,370],[160,280],[180,200],[240,150],
+        [320,118],[420,100],[500,112],[580,100],[680,118],[760,150],
+        [820,200],[840,280],[810,370],[760,440],[650,495],[500,510]
+      ];
+
+      let youIdx = 0; // waypoint index for "your" car
+      let oppIdx = 8;
+
+      function placeOnTrack(el, wpIdx) {
+        const [x, y] = waypoints[wpIdx % waypoints.length];
+        const rect = area.getBoundingClientRect();
+        const svgW = 1000, svgH = 600;
+        const scaleX = rect.width / svgW;
+        const scaleY = rect.height / svgH;
+        const px = x * scaleX;
+        const py = y * scaleY;
+        el.style.left = px + 'px';
+        el.style.top = py + 'px';
+
+        // Rotation toward next waypoint
+        const next = waypoints[(wpIdx + 1) % waypoints.length];
+        const angle = Math.atan2(next[1] - y, next[0] - x) * 180 / Math.PI - 90;
+        el.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+        return { px, py, wx: x, wy: y };
+      }
+
+      function svgToScreen(sx, sy) {
+        const rect = area.getBoundingClientRect();
+        return { x: sx * rect.width / 1000, y: sy * rect.height / 600 };
+      }
+      function screenToSvg(px, py) {
+        const rect = area.getBoundingClientRect();
+        return { x: px * 1000 / rect.width, y: py * 600 / rect.height };
+      }
+
+      function placeAll() {
+        placeOnTrack(carYou, youIdx);
+        placeOnTrack(carOpp, oppIdx);
+        updateMinimap();
+        buildTrail();
+      }
+
+      function updateMinimap() {
+        const [yx, yy] = waypoints[youIdx % waypoints.length];
+        const [ox, oy] = waypoints[oppIdx % waypoints.length];
+        mmDotYou.setAttribute('cx', yx);
+        mmDotYou.setAttribute('cy', yy);
+        document.getElementById('mmDotOpp').setAttribute('cx', ox);
+        document.getElementById('mmDotOpp').setAttribute('cy', oy);
+      }
+
+      function buildTrail() {
+        trailContainer.innerHTML = '';
+        for (let i = 1; i <= TRAIL_COUNT; i++) {
+          const idx = ((youIdx - i) % waypoints.length + waypoints.length) % waypoints.length;
+          const [wx, wy] = waypoints[idx];
+          const { x, y } = svgToScreen(wx, wy);
+          const dot = document.createElement('div');
+          dot.className = 'trail-dot trail-dot--you';
+          dot.style.left = x + 'px';
+          dot.style.top = y + 'px';
+          dot.style.opacity = 1 - i / TRAIL_COUNT;
+          dot.style.width = (5 - i * 0.15) + 'px';
+          dot.style.height = dot.style.width;
+          trailContainer.appendChild(dot);
+        }
+        for (let i = 1; i <= 8; i++) {
+          const idx = ((oppIdx - i) % waypoints.length + waypoints.length) % waypoints.length;
+          const [wx, wy] = waypoints[idx];
+          const { x, y } = svgToScreen(wx, wy);
+          const dot = document.createElement('div');
+          dot.className = 'trail-dot trail-dot--opp';
+          dot.style.left = x + 'px';
+          dot.style.top = y + 'px';
+          dot.style.opacity = 0.7 - i / 12;
+          trailContainer.appendChild(dot);
+        }
+      }
+
+      // Scatter stars
+      for (let i = 0; i < 60; i++) {
+        const s = document.createElement('div');
+        s.className = 'star';
+        s.style.left = Math.random() * 100 + '%';
+        s.style.top = Math.random() * 100 + '%';
+        const size = Math.random() * 2 + 0.5;
+        s.style.width = size + 'px';
+        s.style.height = size + 'px';
+        s.style.opacity = Math.random() * 0.5 + 0.1;
+        area.appendChild(s);
+      }
+
+      // ── Drag-to-aim ──
+      let dragging = false;
+      let dragStart = { x: 0, y: 0 };
+
+      function getCarCenter() {
+        const rect = area.getBoundingClientRect();
+        const [wx, wy] = waypoints[youIdx % waypoints.length];
+        return { x: wx * rect.width / 1000, y: wy * rect.height / 600 };
+      }
+
+      function onPointerDown(e) {
+        e.preventDefault();
+        dragging = true;
+        dragStart = getCarCenter();
+        area.classList.add('race-canvas-wrap--dragging');
+        ghost.hidden = false;
+        landingDot.hidden = false;
+        thrustLine.setAttribute('opacity', '0.9');
+        hint.textContent = 'Aiming… release to submit';
+      }
+
+      function onPointerMove(e) {
+        if (!dragging) return;
+        const rect = area.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const dx = mx - dragStart.x;
+        const dy = my - dragStart.y;
+        const dist = Math.min(Math.sqrt(dx * dx + dy * dy), MAX_THRUST);
+        const angle = Math.atan2(dy, dx);
+        const endX = dragStart.x + Math.cos(angle) * dist;
+        const endY = dragStart.y + Math.sin(angle) * dist;
+
+        // Thrust vector line (in SVG coords)
+        const svgStart = screenToSvg(dragStart.x, dragStart.y);
+        const svgEnd = screenToSvg(endX, endY);
+        thrustLine.setAttribute('x1', svgStart.x);
+        thrustLine.setAttribute('y1', svgStart.y);
+        thrustLine.setAttribute('x2', svgEnd.x);
+        thrustLine.setAttribute('y2', svgEnd.y);
+
+        // Landing dot
+        landingDot.style.left = endX + 'px';
+        landingDot.style.top = endY + 'px';
+
+        // Ghost (inertia drift — offset perpendicular)
+        const inertiaFactor = 0.4;
+        const ghostX = dragStart.x + Math.cos(angle - 0.5) * dist * inertiaFactor;
+        const ghostY = dragStart.y + Math.sin(angle - 0.5) * dist * inertiaFactor;
+        ghost.style.left = ghostX + 'px';
+        ghost.style.top = ghostY + 'px';
+        const gAngle = Math.atan2(ghostY - dragStart.y, ghostX - dragStart.x) * 180 / Math.PI - 90;
+        ghost.style.transform = `translate(-50%, -50%) rotate(${gAngle}deg)`;
+
+        // Thrust bar
+        const pct = Math.round((dist / MAX_THRUST) * 100);
+        thrustFill.style.height = pct + '%';
+        thrustPct.textContent = pct + '%';
+      }
+
+      function onPointerUp() {
+        if (!dragging) return;
+        dragging = false;
+        area.classList.remove('race-canvas-wrap--dragging');
+
+        // "Submit move" — advance car along waypoints
+        youIdx = (youIdx + 2) % waypoints.length;
+        oppIdx = (oppIdx + 1) % waypoints.length;
+
+        placeAll();
+
+        // Update HUD
+        const turn = parseInt(document.getElementById('hud-turn').textContent) + 1;
+        document.getElementById('hud-turn').textContent = turn;
+        const speed = 80 + Math.floor(Math.random() * 100);
+        document.getElementById('hud-speed').innerHTML = speed + ' <small>u/s</small>';
+        const inertia = 30 + Math.floor(Math.random() * 50);
+        document.getElementById('hud-inertia').textContent = inertia + '%';
+
+        // Reset vector
+        thrustLine.setAttribute('opacity', '0');
+        ghost.hidden = true;
+        landingDot.hidden = true;
+        thrustFill.style.height = '0%';
+        thrustPct.textContent = '0%';
+        hint.textContent = 'Drag from your car to aim — release to submit move';
+      }
+
+      area.addEventListener('pointerdown', onPointerDown);
+      area.addEventListener('pointermove', onPointerMove);
+      area.addEventListener('pointerup', onPointerUp);
+      area.addEventListener('pointerleave', onPointerUp);
+
+      // Responsive recalc
+      window.addEventListener('resize', () => placeAll());
+
+      // Init
+      placeAll();
+    })();
+  </script>
+</body>
+</html>
