@@ -8,8 +8,15 @@ describe("Home page", () => {
   it("contains links to login and register pages", () => {
     render(<Home />);
 
-    expect(screen.getByRole("link", { name: "Go to login" })).toHaveAttribute("href", "/login");
-    expect(screen.getByRole("link", { name: "Go to register" })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", { name: /Login/i }),
+    ).toHaveAttribute(
+      "href",
+      "/login",
+    );
+    expect(
+      screen.getByRole("link", { name: /Register/i }),
+    ).toHaveAttribute(
       "href",
       "/register",
     );
