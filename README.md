@@ -42,7 +42,9 @@ docker compose -f docker-compose.dev.yml up -d
 | `pnpm build`  | `turbo build` — all workspaces       |
 | `pnpm lint`   | `turbo lint`                         |
 | `pnpm typecheck` | `turbo typecheck`                 |
-| `pnpm test`     | API unit tests (Jest)              |
+| `pnpm test`     | API unit tests (Jest, `@vector-racers/api`) |
+| `pnpm --filter @vector-racers/web test` | Web unit/integration tests (Vitest + RTL) |
+| `pnpm e2e` | Web e2e tests (Playwright, auth smoke included) |
 | `pnpm db:generate` | Prisma Client in `packages/db` |
 | `pnpm db:migrate` | Prisma migrate dev (`packages/db`) |
 | `pnpm db:seed` | Prisma db seed (`packages/db`) |
@@ -67,7 +69,9 @@ docker compose -f docker-compose.dev.yml up -d
 | `METRICS_TOKEN` | Защита endpoint метрик (PHASE 10–11) |
 | `STRIPE_*` | Опционально, post-MVP |
 
-Актуальная документация по реализованному auth-модулю (`TASK-006`: `register/login/refresh/logout`, RS256, Redis refresh-session) описана в [docs/development.md](./docs/development.md#auth-module-task-006).
+Актуальная документация по auth-флоу:
+- backend auth-модуль (`TASK-006`: `register/login/refresh/logout`, RS256, Redis refresh-session) — [docs/development.md](./docs/development.md#auth-module-task-006)
+- frontend auth UI и proxy-роут (`TASK-007`) — [docs/development.md](./docs/development.md#auth-ui-task-007)
 
 ## Packages
 

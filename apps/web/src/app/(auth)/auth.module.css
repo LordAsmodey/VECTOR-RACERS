@@ -1,0 +1,150 @@
+.authShell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background:
+    radial-gradient(circle at top right, rgba(16, 185, 129, 0.14), transparent 45%),
+    radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.16), transparent 40%),
+    #04070f;
+}
+
+.authCard {
+  width: min(100%, 28rem);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  background: rgba(2, 6, 23, 0.8);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 24px 48px rgba(2, 6, 23, 0.45);
+}
+
+.title {
+  margin: 0 0 1.25rem;
+  font-size: 1.75rem;
+  line-height: 1.2;
+  color: #f8fafc;
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.label {
+  color: #cbd5e1;
+  font-size: 0.95rem;
+}
+
+.input {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 0.625rem;
+  padding: 0.7rem 0.85rem;
+  font-size: 1rem;
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.75);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.input::placeholder {
+  color: rgba(203, 213, 225, 0.65);
+}
+
+.input:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+}
+
+.input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.errorInput {
+  border-color: #f87171;
+  box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.18);
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #94a3b8;
+}
+
+.error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #fca5a5;
+}
+
+.formError {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.625rem;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: rgba(127, 29, 29, 0.25);
+  color: #fecaca;
+  font-size: 0.875rem;
+}
+
+.submitButton {
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f8fafc;
+  background: linear-gradient(90deg, #2563eb 0%, #0ea5e9 100%);
+  cursor: pointer;
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.submitButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.altLink {
+  margin: 1rem 0 0;
+  color: #cbd5e1;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.altLink a {
+  color: #7dd3fc;
+  text-decoration: none;
+}
+
+.altLink a:hover {
+  text-decoration: underline;
+}
+
+.checkboxRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #cbd5e1;
+  font-size: 0.95rem;
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #38bdf8;
+}
+
+.checkbox:disabled {
+  cursor: not-allowed;
+}

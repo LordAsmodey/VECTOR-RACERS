@@ -30,7 +30,9 @@ docker compose -f docker-compose.dev.yml up -d
 | `pnpm build` | Сборка всех пакетов; `^build` гарантирует порядок зависимостей. |
 | `pnpm lint` | Линт во всех пакетах, где зада скрипт. |
 | `pnpm typecheck` | `tsc --noEmit` / проверки типов. |
-| `pnpm test` | Сейчас: unit-тесты API (Jest). |
+| `pnpm test` | Unit-тесты API (Jest, `@vector-racers/api`). |
+| `pnpm --filter @vector-racers/web test` | Unit/integration тесты web (`Vitest` + `React Testing Library`). |
+| `pnpm e2e` | E2E тесты web (`Playwright`), включая smoke auth-флоу. |
 | `pnpm db:generate` | `prisma generate` в `packages/db`. |
 | `pnpm db:migrate` | `prisma migrate dev` в `packages/db`. |
 | `pnpm db:seed` | seed в `packages/db` (см. TASK-005). |
@@ -68,6 +70,27 @@ docker compose -f docker-compose.dev.yml up -d
 - `JWT_ACCESS_PRIVATE_KEY_PATH`
 - `JWT_REFRESH_PUBLIC_KEY_PATH`
 - `JWT_REFRESH_PRIVATE_KEY_PATH`
+
+## Auth UI (TASK-007)
+
+В `apps/web` реализованы страницы аутентификации на Next.js App Router с `react-hook-form` + `zod`:
+
+- `GET /login`
+- `GET /register`
+
+Для обмена с API используется Next Route Handler proxy:
+
+- `POST /api/auth/[...action]`
+
+Handler проксирует запросы к backend auth endpoint-ам и управляет `httpOnly` cookie для клиентской сессии. Политика TTL cookie зависит от `rememberMe`:
+
+- `rememberMe = true` -> длительный TTL (persisted cookie);
+- `rememberMe = false` -> короткий TTL (session-oriented cookie policy).
+
+Ошибки API приведены к единому формату для UI:
+
+- field-level ошибки маппятся на конкретные поля формы (`email`, `password`, и т.д.);
+- глобальные ошибки отображаются как form-level message.
 
 ## Prisma (`packages/db`)
 
