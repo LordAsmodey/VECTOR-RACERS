@@ -16,4 +16,6 @@ When the user says **implement** or **implement: &lt;feature description&gt;** (
    - After test phase: run **docs phase** (docs-writer) with feature summary, tasks, files changed, test result, optional adr_candidate; include docs result in the report.
    - Report the final summary to the user (including test phase and docs phase result).
 
+Important: **Orchestrator is the current executing agent**. You must not call `mcp_task` with `subagent_type="orchestrator"`—use only the subagent types listed in `mcp_task` (Architect/Planner/Workers/Reviewers/Testers/`docs-writer`).
+
 Use the **Agent Registry** in the skill to map task `assignee` to `subagent_type` for each `mcp_task` call. Do not skip review steps or circuit breaker rules.
