@@ -67,6 +67,8 @@ docker compose -f docker-compose.dev.yml up -d
 | `METRICS_TOKEN` | Защита endpoint метрик (PHASE 10–11) |
 | `STRIPE_*` | Опционально, post-MVP |
 
+Актуальная документация по реализованному auth-модулю (`TASK-006`: `register/login/refresh/logout`, RS256, Redis refresh-session) описана в [docs/development.md](./docs/development.md#auth-module-task-006).
+
 ## Packages
 
 - **`@vector-racers/web`** — Next.js (App Router)

@@ -42,6 +42,33 @@ docker compose -f docker-compose.dev.yml up -d
 | Next.js (`apps/web`) | `3000` | `next dev` / `next start`. |
 | NestJS (`apps/api`) | `PORT` или **3000** | В `apps/api/src/main.ts` — `process.env.PORT ?? 3000`. В `.env.example` задано `PORT=3001` вместе с `API_URL` / `NEXT_PUBLIC_API_URL`. Пока Nest не подгружает корневой `.env` автоматически, экспортируйте `PORT` в shell или передайте явно: `PORT=3001 pnpm --filter @vector-racers/api start:dev`. |
 
+## Auth module (TASK-006)
+
+Реализован модуль аутентификации в `apps/api/src/auth` с валидацией DTO (`class-validator`) и интеграцией `JwtAuthGuard`/`JwtStrategy` для защищенных endpoint-ов через `@UseGuards(JwtAuthGuard)`.
+
+### Endpoint-ы
+
+- `POST /auth/register`
+- `POST /auth/login`
+- `POST /auth/refresh`
+- `POST /auth/logout`
+
+### Токены и сессия refresh
+
+- `access token`: TTL `15m`, алгоритм подписи `RS256`.
+- `refresh token`: TTL `30d`, хранится в Redis по ключу `rt:{userId}:{jti}`.
+- При `logout` refresh-токен инвалидируется удалением записи из Redis.
+- Хеширование паролей: `bcrypt`, `12` раундов.
+
+### Переменные окружения для JWT
+
+Для запуска auth-модуля должны быть заданы пути к RSA PEM-ключам:
+
+- `JWT_ACCESS_PUBLIC_KEY_PATH`
+- `JWT_ACCESS_PRIVATE_KEY_PATH`
+- `JWT_REFRESH_PUBLIC_KEY_PATH`
+- `JWT_REFRESH_PRIVATE_KEY_PATH`
+
 ## Prisma (`packages/db`)
 
 - Схема: `packages/db/prisma/schema.prisma`.
