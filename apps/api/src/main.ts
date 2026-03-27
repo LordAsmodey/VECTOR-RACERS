@@ -3,9 +3,13 @@ import './load-env';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { RedisIoAdapter } from './game/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
   // Prefer API_PORT so root `PORT` (often used by Next/other tools) does not collide with Nest.
   const raw = process.env.API_PORT ?? process.env.PORT;
   const port = Number(raw) || 3001;

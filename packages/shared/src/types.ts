@@ -32,3 +32,25 @@ export interface TrackDef {
   lapCount: number;
 }
 
+/**
+ * Race state over Socket.io (TASK-010 server → client payloads; TASK-011 client).
+ */
+export interface GameStatePayload {
+  cars: Record<string, CarState>;
+  /** Index into `playerOrder` for the player allowed to `submit_move`. */
+  turnIndex: number;
+  track: TrackDef;
+  /** Monotonic per room; incremented after each accepted `submit_move`. */
+  moveSeq: number;
+  /** Same as `playerOrder[turnIndex]` when the race is active. */
+  currentPlayerId: string;
+}
+
+/** One row in `Replay.movesJson` (TASK-004 / TASK-010). */
+export interface ReplayMoveEntry {
+  moveSeq: number;
+  userId: string;
+  input: MoveInput;
+  resultingStateHash?: string;
+}
+

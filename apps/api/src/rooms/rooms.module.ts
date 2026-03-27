@@ -10,5 +10,6 @@ import { RoomsService } from './rooms.service';
   imports: [AuthModule, RedisModule],
   controllers: [RoomsController],
   providers: [RoomsService, RoomSyncService, RoomSyncMetrics],
+  exports: [RoomsService, RoomSyncService],
 })
 export class RoomsModule {}
