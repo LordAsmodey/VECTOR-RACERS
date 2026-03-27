@@ -24,6 +24,11 @@ function resolveApiBaseUrl(): string {
   const value = fromServer || fromPublic;
 
   if (!value) {
+    // Next.js loads `apps/web/.env*`, not the monorepo root `.env`, so local `pnpm dev`
+    // often runs without API_URL unless duplicated or injected — match `.env.example`.
+    if (process.env.NODE_ENV === "development") {
+      return "http://localhost:3001";
+    }
     throw new Error("API_URL is not configured");
   }
 

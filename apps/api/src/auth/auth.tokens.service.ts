@@ -33,8 +33,62 @@ interface RedisConfig {
 
 @Injectable()
 export class AuthTokensService {
-  private readonly redisUrl = process.env.REDIS_URL;
+  /** Dev-only when `REDIS_URL` is unset; production always requires Redis. */
+  private static devRefreshEntries = new Map<
+    string,
+    { token: string; expiresAtMs: number }
+  >();
+  private static memoryWarnLogged = false;
+
+  private readonly redisUrl = process.env.REDIS_URL?.trim();
+  private readonly useMemoryRefreshStore =
+    !process.env.REDIS_URL?.trim() && process.env.NODE_ENV !== 'production';
+  /** Set when Redis is configured but unreachable in dev (first failed op). */
+  private redisDevFailover = false;
   private readonly authConfig = getAuthConfig();
+
+  private shouldUseMemoryRefreshStore(): boolean {
+    return this.useMemoryRefreshStore || this.redisDevFailover;
+  }
+
+  private activateRedisDevFailover(): void {
+    if (this.redisDevFailover) {
+      return;
+    }
+    this.redisDevFailover = true;
+    console.warn(
+      '[auth] Redis unreachable; using in-memory refresh store for this dev session. Start Redis for production-like behavior.',
+    );
+  }
+
+  private setRefreshTokenMemory(
+    userId: string,
+    jti: string,
+    token: string,
+  ): void {
+    const key = this.redisKey(userId, jti);
+    AuthTokensService.devRefreshEntries.set(key, {
+      token,
+      expiresAtMs:
+        Date.now() + this.authConfig.refreshTokenTtlSeconds * 1000,
+    });
+  }
+
+  private getRefreshTokenMemory(
+    userId: string,
+    jti: string,
+  ): string | null {
+    const key = this.redisKey(userId, jti);
+    const entry = AuthTokensService.devRefreshEntries.get(key);
+    if (!entry) {
+      return null;
+    }
+    if (Date.now() >= entry.expiresAtMs) {
+      AuthTokensService.devRefreshEntries.delete(key);
+      return null;
+    }
+    return entry.token;
+  }
 
   async issueTokenPair(
     userId: string,
@@ -212,39 +266,90 @@ export class AuthTokensService {
     return `rt:${userId}:${jti}`;
   }
 
+  private logMemoryStoreWarningOnce(): void {
+    if (AuthTokensService.memoryWarnLogged) {
+      return;
+    }
+    AuthTokensService.memoryWarnLogged = true;
+    console.warn(
+      '[auth] REDIS_URL unset; using in-memory refresh store (dev only). Start Redis and set REDIS_URL for production-like behavior.',
+    );
+  }
+
   private async setRefreshToken(
     userId: string,
     jti: string,
     token: string,
   ): Promise<void> {
-    const key = this.redisKey(userId, jti);
-    await this.withRedis(async (redis) => {
-      await redis.command(
-        'SET',
-        key,
-        token,
-        'EX',
-        String(this.authConfig.refreshTokenTtlSeconds),
-      );
-    });
+    if (this.shouldUseMemoryRefreshStore()) {
+      if (this.useMemoryRefreshStore) {
+        this.logMemoryStoreWarningOnce();
+      }
+      this.setRefreshTokenMemory(userId, jti, token);
+      return;
+    }
+
+    try {
+      const key = this.redisKey(userId, jti);
+      await this.withRedis(async (redis) => {
+        await redis.command(
+          'SET',
+          key,
+          token,
+          'EX',
+          String(this.authConfig.refreshTokenTtlSeconds),
+        );
+      });
+    } catch {
+      if (process.env.NODE_ENV === 'production' || !this.redisUrl) {
+        throw new ServiceUnavailableException('Redis is unavailable');
+      }
+      this.activateRedisDevFailover();
+      this.setRefreshTokenMemory(userId, jti, token);
+    }
   }
 
   private async getRefreshToken(
     userId: string,
     jti: string,
   ): Promise<string | null> {
-    const key = this.redisKey(userId, jti);
-    return this.withRedis(async (redis) => {
-      const result = await redis.command('GET', key);
-      return typeof result === 'string' ? result : null;
-    });
+    if (this.shouldUseMemoryRefreshStore()) {
+      return this.getRefreshTokenMemory(userId, jti);
+    }
+
+    try {
+      const key = this.redisKey(userId, jti);
+      return await this.withRedis(async (redis) => {
+        const result = await redis.command('GET', key);
+        return typeof result === 'string' ? result : null;
+      });
+    } catch {
+      if (process.env.NODE_ENV === 'production' || !this.redisUrl) {
+        throw new ServiceUnavailableException('Redis is unavailable');
+      }
+      this.activateRedisDevFailover();
+      return this.getRefreshTokenMemory(userId, jti);
+    }
   }
 
   private async deleteRefreshToken(userId: string, jti: string): Promise<void> {
-    const key = this.redisKey(userId, jti);
-    await this.withRedis(async (redis) => {
-      await redis.command('DEL', key);
-    });
+    if (this.shouldUseMemoryRefreshStore()) {
+      AuthTokensService.devRefreshEntries.delete(this.redisKey(userId, jti));
+      return;
+    }
+
+    try {
+      const key = this.redisKey(userId, jti);
+      await this.withRedis(async (redis) => {
+        await redis.command('DEL', key);
+      });
+    } catch {
+      if (process.env.NODE_ENV === 'production' || !this.redisUrl) {
+        throw new ServiceUnavailableException('Redis is unavailable');
+      }
+      this.activateRedisDevFailover();
+      AuthTokensService.devRefreshEntries.delete(this.redisKey(userId, jti));
+    }
   }
 
   private async withRedis<T>(
