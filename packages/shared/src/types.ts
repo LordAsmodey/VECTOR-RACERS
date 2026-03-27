@@ -44,6 +44,17 @@ export interface GameStatePayload {
   moveSeq: number;
   /** Same as `playerOrder[turnIndex]` when the race is active. */
   currentPlayerId: string;
+  /** Turn order (matches server `StoredRaceGame.playerOrder`). */
+  playerOrder: string[];
+  /** Per-player car stats for client-side `applyMove` (same merge as server physics track). */
+  carStatsByUserId: Record<string, CarStats>;
+}
+
+/** Row in `game_end` payload (TASK-010 / TASK-011). */
+export interface GameEndResultRow {
+  userId: string;
+  laps: number;
+  finishPosition: number;
 }
 
 /** One row in `Replay.movesJson` (TASK-004 / TASK-010). */
