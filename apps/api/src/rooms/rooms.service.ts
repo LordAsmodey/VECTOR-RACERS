@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -192,6 +193,57 @@ export class RoomsService {
       throw new NotFoundException('Room not found');
     }
     return this.snapshotToDetailView(snapshot);
+  }
+
+  /**
+   * Redis-first room snapshot for realtime game layer (TASK-010).
+   */
+  async loadRoomSnapshot(roomId: string): Promise<RoomRedisSnapshot | null> {
+    return this.loadSnapshot(roomId);
+  }
+
+  async assertUserInRoom(roomId: string, userId: string): Promise<void> {
+    const snapshot = await this.loadSnapshot(roomId);
+    if (!snapshot) {
+      throw new NotFoundException('Room not found');
+    }
+    if (!snapshot.players.some((p) => p.userId === userId)) {
+      throw new ForbiddenException('Not a room member');
+    }
+  }
+
+  async markPlayerReady(roomId: string, userId: string): Promise<RoomRedisSnapshot> {
+    const snapshot = await this.loadSnapshot(roomId);
+    if (!snapshot) {
+      throw new NotFoundException('Room not found');
+    }
+    const idx = snapshot.players.findIndex((p) => p.userId === userId);
+    if (idx === -1) {
+      throw new ForbiddenException('Not a room member');
+    }
+    const next: RoomRedisSnapshot = {
+      ...snapshot,
+      players: snapshot.players.map((p, i) =>
+        i === idx ? { ...p, isReady: true } : p,
+      ),
+    };
+    await this.writeSnapshot(next);
+    this.roomSync.schedulePersist(roomId);
+    return next;
+  }
+
+  async setRoomStatus(
+    roomId: string,
+    status: RoomStatus,
+  ): Promise<RoomRedisSnapshot> {
+    const snapshot = await this.loadSnapshot(roomId);
+    if (!snapshot) {
+      throw new NotFoundException('Room not found');
+    }
+    const next = { ...snapshot, status };
+    await this.writeSnapshot(next);
+    this.roomSync.schedulePersist(roomId);
+    return next;
   }
 
   async listPublic(query: PublicRoomsQueryDto): Promise<{
