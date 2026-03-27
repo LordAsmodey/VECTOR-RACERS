@@ -74,17 +74,23 @@ model Track {
   difficulty    TrackDifficulty
 
   champEvents ChampEvent[]
+  rooms       Room[]
 }
 
 model Room {
-  id         String    @id @default(cuid())
-  code       String    @unique @db.VarChar(6)
+  id         String     @id @default(cuid())
+  code       String     @unique @db.VarChar(6)
   status     RoomStatus @default(WAITING)
   maxPlayers Int
-  createdAt  DateTime  @default(now())
+  trackId    String
+  createdAt  DateTime   @default(now())
 
+  track       Track        @relation(fields: [trackId], references: [id])
   roomPlayers RoomPlayer[]
-  replays      Replay[]
+  replays     Replay[]
+
+  @@index([status])
+  @@index([trackId])
 }
 
 model RoomPlayer {

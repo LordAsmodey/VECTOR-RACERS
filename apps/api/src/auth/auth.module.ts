@@ -15,6 +15,11 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtAuthGuard,
     PrismaClient,
   ],
-  exports: [AuthTokensService, JwtStrategy, JwtAuthGuard],
+  exports: [
+    AuthTokensService,
+    JwtStrategy,
+    JwtAuthGuard,
+    PrismaClient,
+  ],
 })
 export class AuthModule {}

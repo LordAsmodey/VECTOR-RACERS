@@ -12,12 +12,13 @@
     "typecheck": "turbo typecheck",
     "test": "pnpm --filter @vector-racers/api test",
     "e2e": "pnpm --filter @vector-racers/web e2e",
-    "db:generate": "pnpm --filter @vector-racers/db exec prisma generate --schema=./prisma/schema.prisma",
-    "db:migrate": "pnpm --filter @vector-racers/db exec prisma migrate dev --schema=./prisma/schema.prisma",
-    "db:push": "pnpm --filter @vector-racers/db exec prisma db push --schema=./prisma/schema.prisma",
-    "db:seed": "pnpm --filter @vector-racers/db exec prisma db seed --schema=./prisma/schema.prisma"
+    "db:generate": "dotenv -e .env -- pnpm --filter @vector-racers/db exec prisma generate --schema=./prisma/schema.prisma",
+    "db:migrate": "dotenv -e .env -- pnpm --filter @vector-racers/db exec prisma migrate dev --schema=./prisma/schema.prisma",
+    "db:push": "dotenv -e .env -- pnpm --filter @vector-racers/db exec prisma db push --schema=./prisma/schema.prisma",
+    "db:seed": "dotenv -e .env -- pnpm --filter @vector-racers/db exec prisma db seed --schema=./prisma/schema.prisma"
   },
   "devDependencies": {
+    "dotenv-cli": "^11.0.0",
     "prettier": "^3.4.2",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
