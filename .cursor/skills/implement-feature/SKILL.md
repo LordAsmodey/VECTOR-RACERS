@@ -7,6 +7,8 @@ description: Runs the full feature implementation workflow: design (Architect), 
 
 This skill defines the end-to-end workflow for implementing a feature using project agents. The **executing agent** acts as **Orchestrator**: it coordinates subagents via `mcp_task`, decides who to call (Architect, Planner, Workers, Reviewers), and passes context between phases. It does **not** write code or create the implementation plan — the **Planner** creates the plan.
 
+Important: **Orchestrator is the current executing agent** (the management logic). Do **not** try to run `mcp_task` with `subagent_type="orchestrator"`—`subagent_type` is only for Architect/Planner/Workers/Reviewers/Testers/`docs-writer`.
+
 **Project: Vector Racers** — before orchestrating, ensure subagents have stack context: read **`.cursor/agents/vector-racers-context.md`** and **`vector-racers-tasks.md`**. Monorepo: **pnpm** + **Turborepo**; **`apps/web`** (Next.js App Router), **`apps/api`** (NestJS), **`packages/shared`**, **`packages/db`** (`@vector-racers/db` — only Prisma). Pass this context in prompts to Workers when tasks touch boundaries (no Prisma in `apps/web`).
 
 ---
