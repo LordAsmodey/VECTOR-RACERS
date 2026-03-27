@@ -1,4 +1,10 @@
-import type { CarState, CarStats, GameStatePayload, TrackDef } from '@vector-racers/shared';
+import type {
+  CarState,
+  CarStats,
+  GameEndResultRow,
+  GameStatePayload,
+  TrackDef,
+} from '@vector-racers/shared';
 
 /** Persisted in Redis `game:{roomId}` while status is RACING. */
 export interface StoredRaceGame {
@@ -29,8 +35,4 @@ export interface StateUpdatePayload {
   moveSeq: number;
 }
 
-export interface GameEndResultRow {
-  userId: string;
-  laps: number;
-  finishPosition: number;
-}
+export type { GameEndResultRow };

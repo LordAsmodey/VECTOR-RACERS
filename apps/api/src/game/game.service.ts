@@ -125,6 +125,8 @@ function toGameStatePayload(g: StoredRaceGame): GameStatePayload {
     track: race.track,
     moveSeq: race.moveSeq,
     currentPlayerId,
+    playerOrder,
+    carStatsByUserId: race.carStatsByUserId,
   };
 }
 
