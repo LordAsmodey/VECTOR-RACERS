@@ -42,7 +42,7 @@ docker compose -f docker-compose.dev.yml up -d
 | Сервис | По умолчанию | Примечание |
 |--------|----------------|------------|
 | Next.js (`apps/web`) | `3000` | `next dev` / `next start`. |
-| NestJS (`apps/api`) | `PORT` или **3000** | В `apps/api/src/main.ts` — `process.env.PORT ?? 3000`. В `.env.example` задано `PORT=3001` вместе с `API_URL` / `NEXT_PUBLIC_API_URL`. Пока Nest не подгружает корневой `.env` автоматически, экспортируйте `PORT` в shell или передайте явно: `PORT=3001 pnpm --filter @vector-racers/api start:dev`. |
+| NestJS (`apps/api`) | `API_PORT` или **3001** | В `apps/api/src/main.ts` — `API_PORT` (предпочтительно), иначе `PORT`, иначе 3001. В `.env.example`: `API_PORT=3001` вместе с `API_URL` / `NEXT_PUBLIC_API_URL`. Не задавайте общий `PORT=3001` для всего monorepo, если он же попадает в Next — лучше только `API_PORT`. |
 
 ## Auth module (TASK-006)
 

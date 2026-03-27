@@ -8,7 +8,7 @@ import {
   ChampionshipStatus,
   TrackDifficulty,
   UserRole,
-} from '../src/generated/client';
+} from '../src/generated/client/index.js';
 import { PrismaClient } from '../src/index';
 
 const prisma = new PrismaClient();
