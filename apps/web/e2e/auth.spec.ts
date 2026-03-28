@@ -1,11 +1,15 @@
 import { expect, test } from "@playwright/test";
 
+/** Access cookie so `/lobby` layout (TASK-013) accepts the session after a mocked auth response. */
+const MOCK_AUTH_SET_COOKIE = "vr_access_token=playwright-e2e-access; Path=/; SameSite=Lax";
+
 test.describe("auth", () => {
   test("login submits successfully and redirects to /lobby", async ({ page }) => {
     await page.route("**/api/auth/login", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
+        headers: { "Set-Cookie": MOCK_AUTH_SET_COOKIE },
         body: JSON.stringify({ success: true }),
       });
     });
@@ -25,6 +29,7 @@ test.describe("auth", () => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
+        headers: { "Set-Cookie": MOCK_AUTH_SET_COOKIE },
         body: JSON.stringify({ success: true }),
       });
     });
