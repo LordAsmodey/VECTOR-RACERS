@@ -1,4 +1,4 @@
-import { HttpException, UseGuards } from '@nestjs/common';
+import { HttpException, Logger, UseGuards } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -23,12 +23,20 @@ function wsCorsOrigins(): boolean | string[] {
   return list.length > 0 ? list : true;
 }
 
+const RACE_COUNTDOWN_MS = 4000;
+const TURN_DEADLINE_MS = 60_000;
+
 @WebSocketGateway({
   cors: { origin: wsCorsOrigins(), credentials: true },
 })
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  private readonly logger = new Logger(GameGateway.name);
+
   @WebSocketServer()
   server!: Server;
+
+  private readonly raceStartTimers = new Map<string, NodeJS.Timeout>();
+  private readonly turnDeadlineTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private readonly jwtStrategy: JwtStrategy,
@@ -50,7 +58,87 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  handleDisconnect(): void {}
+  handleDisconnect(client: Socket): void {
+    const roomId = client.data.gameRoomId as string | undefined;
+    const userId = client.data.userId as string | undefined;
+    if (roomId && userId) {
+      this.server.to(roomId).emit('player_connection_change', {
+        userId,
+        online: false,
+      });
+    }
+  }
+
+  private clearRaceStartTimer(roomId: string): void {
+    const t = this.raceStartTimers.get(roomId);
+    if (t) {
+      clearTimeout(t);
+      this.raceStartTimers.delete(roomId);
+    }
+  }
+
+  private clearTurnDeadlineTimer(roomId: string): void {
+    const t = this.turnDeadlineTimers.get(roomId);
+    if (t) {
+      clearTimeout(t);
+      this.turnDeadlineTimers.delete(roomId);
+    }
+  }
+
+  private scheduleTurnDeadline(roomId: string): void {
+    this.clearTurnDeadlineTimer(roomId);
+    const timer = setTimeout(() => {
+      this.turnDeadlineTimers.delete(roomId);
+      void this.applyTurnDeadline(roomId);
+    }, TURN_DEADLINE_MS);
+    this.turnDeadlineTimers.set(roomId, timer);
+  }
+
+  private async applyTurnDeadline(roomId: string): Promise<void> {
+    try {
+      const stored = await this.gameService.loadStoredGame(roomId);
+      if (!stored) {
+        return;
+      }
+      const n = stored.playerOrder.length;
+      if (n === 0) {
+        return;
+      }
+      const currentId =
+        stored.playerOrder[((stored.race.turnIndex % n) + n) % n]!;
+      const result = await this.gameService.applySubmitMove(
+        currentId,
+        roomId,
+        { inputX: 0, inputY: 0 },
+        stored.race.moveSeq,
+      );
+      if (result.stateUpdate) {
+        this.server.to(roomId).emit('state_update', result.stateUpdate);
+        this.scheduleTurnDeadline(roomId);
+      }
+      if (result.gameEnd) {
+        this.clearTurnDeadlineTimer(roomId);
+        this.server.to(roomId).emit('game_end', result.gameEnd);
+      }
+    } catch (e) {
+      if (e instanceof GameMoveError) {
+        return;
+      }
+      this.logger.warn(`Turn deadline for ${roomId}: ${String(e)}`);
+    }
+  }
+
+  private async finalizeRaceAfterCountdown(roomId: string): Promise<void> {
+    try {
+      const start = await this.gameService.finalizeScheduledRaceStart(roomId);
+      if (start) {
+        this.server.to(roomId).emit('game_start', start);
+        this.scheduleTurnDeadline(roomId);
+      }
+    } catch (e) {
+      this.logger.warn(`finalizeRaceAfterCountdown ${roomId}: ${String(e)}`);
+    }
+  }
 
   @UseGuards(JwtWsGuard)
   @SubscribeMessage('join_room')
@@ -76,9 +164,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const playerJoined =
         await this.gameService.buildPlayerJoinedPayload(snapshot);
       this.server.to(roomId).emit('player_joined', playerJoined);
+      this.server.to(roomId).emit('player_connection_change', {
+        userId,
+        online: true,
+      });
       const resync = await this.gameService.tryResyncAfterJoin(roomId);
       if (resync) {
         client.emit('game_start', resync);
+        if (!this.turnDeadlineTimers.has(roomId)) {
+          this.scheduleTurnDeadline(roomId);
+        }
       }
     } catch (e) {
       this.emitHttpishError(client, e);
@@ -100,8 +195,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const userId = client.data.userId as string;
       const out = await this.gameService.onPlayerReady(userId, roomId);
       this.server.to(roomId).emit('player_joined', out.playerJoined);
-      if (out.gameStart) {
-        this.server.to(roomId).emit('game_start', out.gameStart);
+      if (out.raceCountdownPending) {
+        if (!this.raceStartTimers.has(roomId)) {
+          this.server.to(roomId).emit('race_countdown', {
+            totalMs: RACE_COUNTDOWN_MS,
+          });
+          const timer = setTimeout(() => {
+            this.raceStartTimers.delete(roomId);
+            void this.finalizeRaceAfterCountdown(roomId);
+          }, RACE_COUNTDOWN_MS);
+          this.raceStartTimers.set(roomId, timer);
+        }
       }
     } catch (e) {
       this.emitHttpishError(client, e);
@@ -142,8 +246,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
       if (result.stateUpdate) {
         this.server.to(roomId).emit('state_update', result.stateUpdate);
+        this.scheduleTurnDeadline(roomId);
       }
       if (result.gameEnd) {
+        this.clearTurnDeadlineTimer(roomId);
+        this.clearRaceStartTimer(roomId);
         this.server.to(roomId).emit('game_end', result.gameEnd);
       }
     } catch (e) {

@@ -8,6 +8,7 @@ import {
   type GameEndResultRow,
   type GameStatePayload,
   type MoveInput,
+  type RoomLobbyPlayer,
 } from "@vector-racers/shared";
 
 /** Same notion as in vector-racers-tasks.md (world / physics units). */
@@ -174,15 +175,23 @@ export function detachGameSocketConsumer(): void {
 export interface UseGameSocketOptions {
   /** Authenticated user id (must match JWT / `currentPlayerId` when it is their turn). */
   userId: string;
+  /** From GET /rooms/:id before first `player_joined` (optional). */
+  initialLobbyPlayers?: RoomLobbyPlayer[] | null;
 }
 
 export interface UseGameSocketResult {
   gameState: GameStatePayload | null;
   submitMove: (input: MoveInput) => void;
+  sendPlayerReady: () => void;
   connectionStatus: GameConnectionStatus;
   lastMoveSeq: number;
   raceResults: GameEndResultRow[] | null;
   socketError: { code: string; message: string } | null;
+  lobbyPlayers: RoomLobbyPlayer[] | null;
+  /** Epoch ms when 3-2-1-GO overlay should end (TASK-014). */
+  raceCountdownUntil: number | null;
+  /** User ids reported offline via `player_connection_change` (TASK-014). */
+  offlineUserIds: string[];
 }
 
 /**
@@ -192,7 +201,7 @@ export function useGameSocket(
   roomId: string | null,
   options: UseGameSocketOptions,
 ): UseGameSocketResult {
-  const { userId } = options;
+  const { userId, initialLobbyPlayers } = options;
   const [gameState, setGameState] = useState<GameStatePayload | null>(null);
   const [connectionStatus, setConnectionStatus] =
     useState<GameConnectionStatus>("idle");
@@ -203,6 +212,13 @@ export function useGameSocket(
     code: string;
     message: string;
   } | null>(null);
+  const [lobbyPlayers, setLobbyPlayers] = useState<RoomLobbyPlayer[] | null>(
+    initialLobbyPlayers ?? null,
+  );
+  const [raceCountdownUntil, setRaceCountdownUntil] = useState<number | null>(
+    null,
+  );
+  const [offlineUserIds, setOfflineUserIds] = useState<string[]>([]);
 
   const lastAckMoveSeqRef = useRef(0);
   const preOptimisticRef = useRef<GameStatePayload | null>(null);
@@ -210,6 +226,12 @@ export function useGameSocket(
   gameStateRef.current = gameState;
 
   const lastMoveSeq = gameState?.moveSeq ?? lastAckMoveSeqRef.current;
+
+  useEffect(() => {
+    if (initialLobbyPlayers && initialLobbyPlayers.length > 0) {
+      setLobbyPlayers(initialLobbyPlayers);
+    }
+  }, [roomId, initialLobbyPlayers]);
 
   const applyStateUpdate = useCallback((payload: StateUpdatePayload) => {
     const { gameState: incoming, moveSeq } = payload;
@@ -224,7 +246,7 @@ export function useGameSocket(
   }, []);
 
   useEffect(() => {
-    if (!roomId) {
+    if (!roomId || !userId) {
       setConnectionStatus("idle");
       return;
     }
@@ -277,6 +299,7 @@ export function useGameSocket(
           }
           lastAckMoveSeqRef.current = payload.moveSeq;
           preOptimisticRef.current = null;
+          setRaceCountdownUntil(null);
           setGameState(payload.gameState);
           setRaceResults(null);
         };
@@ -295,6 +318,51 @@ export function useGameSocket(
           setRaceResults(payload.results ?? []);
           lastAckMoveSeqRef.current = 0;
           setGameState(null);
+          setRaceCountdownUntil(null);
+        };
+
+        const onPlayerJoined = (payload: { players?: RoomLobbyPlayer[] }) => {
+          if (cancelled) {
+            return;
+          }
+          const list = payload?.players;
+          if (Array.isArray(list)) {
+            setLobbyPlayers(list);
+          }
+        };
+
+        const onRaceCountdown = (payload: { totalMs?: number }) => {
+          if (cancelled) {
+            return;
+          }
+          const ms =
+            typeof payload?.totalMs === "number" && payload.totalMs > 0
+              ? payload.totalMs
+              : 4000;
+          setRaceCountdownUntil(Date.now() + ms);
+        };
+
+        const onPlayerConnectionChange = (payload: {
+          userId?: string;
+          online?: boolean;
+        }) => {
+          if (cancelled) {
+            return;
+          }
+          const uid = payload?.userId;
+          if (typeof uid !== "string" || !uid) {
+            return;
+          }
+          const online = payload.online === true;
+          setOfflineUserIds((prev) => {
+            const set = new Set(prev);
+            if (online) {
+              set.delete(uid);
+            } else {
+              set.add(uid);
+            }
+            return Array.from(set);
+          });
         };
 
         const onError = (payload: { code?: string; message?: string }) => {
@@ -347,6 +415,17 @@ export function useGameSocket(
         socket.on("game_end", onGameEnd);
         removals.push(() => socket.off("game_end", onGameEnd));
 
+        socket.on("player_joined", onPlayerJoined);
+        removals.push(() => socket.off("player_joined", onPlayerJoined));
+
+        socket.on("race_countdown", onRaceCountdown);
+        removals.push(() => socket.off("race_countdown", onRaceCountdown));
+
+        socket.on("player_connection_change", onPlayerConnectionChange);
+        removals.push(() =>
+          socket.off("player_connection_change", onPlayerConnectionChange),
+        );
+
         socket.on("error", onError);
         removals.push(() => socket.off("error", onError));
 
@@ -371,8 +450,20 @@ export function useGameSocket(
       preOptimisticRef.current = null;
       setGameState(null);
       setRaceResults(null);
+      setRaceCountdownUntil(null);
+      setOfflineUserIds([]);
+      setLobbyPlayers(null);
     };
-  }, [roomId, applyStateUpdate]);
+  }, [roomId, userId, applyStateUpdate]);
+
+  const sendPlayerReady = useCallback(() => {
+    if (!roomId) {
+      return;
+    }
+    void getGameSocket().then((socket) => {
+      socket.emit("player_ready");
+    });
+  }, [roomId]);
 
   const submitMove = useCallback(
     (input: MoveInput) => {
@@ -402,9 +493,13 @@ export function useGameSocket(
   return {
     gameState,
     submitMove,
+    sendPlayerReady,
     connectionStatus,
     lastMoveSeq,
     raceResults,
     socketError,
+    lobbyPlayers,
+    raceCountdownUntil,
+    offlineUserIds,
   };
 }

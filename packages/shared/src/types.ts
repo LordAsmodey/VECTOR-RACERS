@@ -57,6 +57,16 @@ export interface GameEndResultRow {
   finishPosition: number;
 }
 
+/** One player row in `player_joined` Socket.io payload (TASK-010 / TASK-014). */
+export interface RoomLobbyPlayer {
+  userId: string;
+  username: string;
+  carId: string;
+  position: number;
+  laps: number;
+  isReady: boolean;
+}
+
 /** One row in `Replay.movesJson` (TASK-004 / TASK-010). */
 export interface ReplayMoveEntry {
   moveSeq: number;
