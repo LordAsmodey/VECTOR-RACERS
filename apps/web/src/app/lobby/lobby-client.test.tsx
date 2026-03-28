@@ -3,16 +3,18 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { pushMock, replaceMock } = vi.hoisted(() => ({
-  pushMock: vi.fn(),
-  replaceMock: vi.fn(),
-}));
+const { pushMock, replaceMock, routerStub } = vi.hoisted(() => {
+  const push = vi.fn();
+  const replace = vi.fn();
+  return {
+    pushMock: push,
+    replaceMock: replace,
+    routerStub: { push, replace },
+  };
+});
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: pushMock,
-    replace: replaceMock,
-  }),
+  useRouter: () => routerStub,
 }));
 
 import { LobbyClient } from "@/app/lobby/lobby-client";
@@ -47,19 +49,20 @@ const MOCK_TRACKS = [
   },
 ];
 
-function jsonResponse(data: unknown, status = 200) {
-  return Promise.resolve({
-    ok: status >= 200 && status < 300,
-    status,
-    json: () => Promise.resolve(data),
-  });
+function jsonResponse(data: unknown, status = 200): Promise<Response> {
+  return Promise.resolve(
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
 }
 
-function setupFetchMock(extra?: (url: string) => Promise<unknown> | undefined) {
-  return vi.fn((input: RequestInfo | URL) => {
+function setupFetchMock(extra?: (url: string) => Promise<Response> | undefined) {
+  return vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
     const url = String(input);
     const fromExtra = extra?.(url);
-    if (fromExtra) {
+    if (fromExtra !== undefined) {
       return fromExtra;
     }
     if (url.includes("/api/catalog/cars")) {
@@ -85,7 +88,7 @@ describe("LobbyClient", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    global.fetch = setupFetchMock();
+    global.fetch = setupFetchMock() as unknown as typeof fetch;
   });
 
   afterEach(() => {
@@ -171,7 +174,7 @@ describe("LobbyClient", () => {
         return jsonResponse({ message: "Unauthorized" }, 401);
       }
       return undefined;
-    });
+    }) as unknown as typeof fetch;
 
     render(<LobbyClient />);
 
