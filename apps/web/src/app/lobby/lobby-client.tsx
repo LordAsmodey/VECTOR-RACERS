@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
 import styles from "./lobby.module.css";
 
@@ -188,7 +188,7 @@ export function LobbyClient() {
     return selectedCarId;
   };
 
-  const handleCreateRoom = async (e: React.FormEvent) => {
+  const handleCreateRoom = async (e: FormEvent) => {
     e.preventDefault();
     const carId = requireCarId();
     if (!carId || !createTrackId) {
@@ -224,7 +224,7 @@ export function LobbyClient() {
     }
   };
 
-  const handleJoinByCode = async (e: React.FormEvent) => {
+  const handleJoinByCode = async (e: FormEvent) => {
     e.preventDefault();
     const carId = requireCarId();
     const code = joinCode.trim().toUpperCase();
