@@ -203,11 +203,8 @@ export class GameService {
     roomId: string,
   ): Promise<{
     playerJoined: { players: PlayerJoinedPlayer[] };
-    gameStart?: {
-      gameState: GameStatePayload;
-      playerOrder: string[];
-      moveSeq: number;
-    };
+    /** All players ready: gateway shows countdown then calls `finalizeScheduledRaceStart`. */
+    raceCountdownPending?: true;
   }> {
     const snapshot = await this.roomsService.markPlayerReady(roomId, userId);
     const playerJoined = await this.buildPlayerJoinedPayload(snapshot);
@@ -217,11 +214,31 @@ export class GameService {
       snapshot.players.length > 0 &&
       snapshot.players.every((p) => p.isReady)
     ) {
-      const gameStart = await this.startRace(roomId, snapshot);
-      return { playerJoined, gameStart };
+      return { playerJoined, raceCountdownPending: true };
     }
 
     return { playerJoined };
+  }
+
+  /**
+   * After client-side 3-2-1-GO countdown (TASK-014). No-op if lobby state changed.
+   */
+  async finalizeScheduledRaceStart(roomId: string): Promise<{
+    gameState: GameStatePayload;
+    playerOrder: string[];
+    moveSeq: number;
+  } | null> {
+    const snapshot = await this.roomsService.loadRoomSnapshot(roomId);
+    if (!snapshot || snapshot.status !== RoomStatus.WAITING) {
+      return null;
+    }
+    if (
+      snapshot.players.length === 0 ||
+      !snapshot.players.every((p) => p.isReady)
+    ) {
+      return null;
+    }
+    return this.startRace(roomId, snapshot);
   }
 
   private async startRace(

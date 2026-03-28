@@ -1,8 +1,11 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Post,
+  Request,
+  UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
 import { AuthResponseDto } from './dto/auth-response.dto';
@@ -10,6 +13,10 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
 import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import type { AuthenticatedUserContext } from './strategies/jwt.strategy';
+
+type AuthedRequest = { user: AuthenticatedUserContext };
 
 const AUTH_VALIDATION_PIPE = new ValidationPipe({
   whitelist: true,
@@ -49,5 +56,11 @@ export class AuthController {
   @HttpCode(200)
   logout(@Body(AUTH_VALIDATION_PIPE) dto: RefreshDto): Promise<void> {
     return this.authService.logout(dto.refreshToken);
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  me(@Request() req: AuthedRequest): { userId: string } {
+    return { userId: req.user.userId };
   }
 }

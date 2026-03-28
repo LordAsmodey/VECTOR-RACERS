@@ -217,6 +217,9 @@ export class RoomsService {
     if (!snapshot) {
       throw new NotFoundException('Room not found');
     }
+    if (snapshot.status !== RoomStatus.WAITING) {
+      throw new ConflictException('Room is not accepting ready toggles');
+    }
     const idx = snapshot.players.findIndex((p) => p.userId === userId);
     if (idx === -1) {
       throw new ForbiddenException('Not a room member');
