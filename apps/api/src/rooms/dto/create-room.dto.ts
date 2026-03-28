@@ -11,6 +11,6 @@ export class CreateRoomDto {
   @Type(() => Number)
   @IsInt()
   @Min(2)
-  @Max(8)
+  @Max(6)
   maxPlayers!: number;
 }
