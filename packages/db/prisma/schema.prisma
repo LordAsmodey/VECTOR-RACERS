@@ -83,14 +83,18 @@ model Room {
   status     RoomStatus @default(WAITING)
   maxPlayers Int
   trackId    String
+  /// When set, this room is tied to a championship event (TASK-015 / TASK-016).
+  champEventId String?
   createdAt  DateTime   @default(now())
 
   track       Track        @relation(fields: [trackId], references: [id])
+  champEvent  ChampEvent?  @relation(fields: [champEventId], references: [id], onDelete: SetNull)
   roomPlayers RoomPlayer[]
   replays     Replay[]
 
   @@index([status])
   @@index([trackId])
+  @@index([champEventId])
 }
 
 model RoomPlayer {
@@ -134,6 +138,7 @@ model ChampEvent {
   championship Championship @relation(fields: [championshipId], references: [id], onDelete: Cascade)
   track        Track        @relation(fields: [trackId], references: [id], onDelete: Cascade)
   results      ChampResult[]
+  rooms        Room[]
 
   @@index([championshipId])
   @@index([trackId])

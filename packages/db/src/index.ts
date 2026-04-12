@@ -1,1 +1,7 @@
-export { PrismaClient, RoomStatus } from './generated/client/index.js';
+export {
+  ChampEventStatus,
+  ChampionshipStatus,
+  PrismaClient,
+  RoomStatus,
+  UserRole,
+} from './generated/client/index.js';
