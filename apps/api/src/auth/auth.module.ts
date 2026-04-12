@@ -3,6 +3,7 @@ import { PrismaClient } from '@vector-racers/db';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AuthTokensService } from './auth.tokens.service';
+import { AdminGuard } from './guards/admin.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
@@ -13,12 +14,14 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     AuthTokensService,
     JwtStrategy,
     JwtAuthGuard,
+    AdminGuard,
     PrismaClient,
   ],
   exports: [
     AuthTokensService,
     JwtStrategy,
     JwtAuthGuard,
+    AdminGuard,
     PrismaClient,
   ],
 })
